@@ -15,7 +15,7 @@ spec:
   interval: 24h
   url: https://github.com/strimzi/strimzi-kafka-operator
   ref:
-    commit: 15585fc45f8db221d7036288f04732b4abe25073
+    branch: main
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -41,21 +41,19 @@ metadata:
 spec:
   interval: 120m
   type: oci
-  url: oci://quay.io/strimzi-helm/strimzi-kafka-operator
+  url: oci://quay.io/strimzi-helm
 ---
-aapiVersion: helm.toolkit.fluxcd.io/v2beta1
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: strimzi-operator
-  namespace: apps
+  namespace: strimzi
 spec:
-  dependsOn:
-    - name: strimzi-operator-crds
-  serviceAccountName: dev-team
+
   interval: 10m
   chart:
     spec:
-      chart: strimzi-operator
+      chart: strimzi-kafka-operator
       sourceRef:
         kind: HelmRepository
         name: strimzi-operator

@@ -8,7 +8,6 @@ tasks:
       - task: flux-push
       - task: flux-up
       - kubectl -n flux-system wait kustomization/cluster-sync --for=condition=ready --timeout=5m
-      - kubectl -n flux-system wait kustomization/apps-sync --for=condition=ready --timeout=5m
   down:
     desc: Delete the local cluster and registry
     deps: ["cluster-down"]
@@ -17,7 +16,6 @@ tasks:
     deps: ["flux-push"]
     cmds:
       - flux reconcile ks cluster-sync --with-source
-      - flux reconcile ks apps-sync --with-source
   cluster-up:
     cmds:
       - scripts/kind/up.sh
