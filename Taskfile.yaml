@@ -1,0 +1,39 @@
+version: '3'
+
+tasks:
+  up:
+    desc: Create the local cluster and registry, install Flux and the cluster addons
+    cmds:
+      - task: cluster-up
+      - task: flux-push
+      - task: flux-up
+      - kubectl -n flux-system wait kustomization/cluster-sync --for=condition=ready --timeout=5m
+      - kubectl -n flux-system wait kustomization/apps-sync --for=condition=ready --timeout=5m
+  down:
+    desc: Delete the local cluster and registry
+    deps: ["cluster-down"]
+  sync:
+    desc: Build, push and reconcile the manifests
+    deps: ["flux-push"]
+    cmds:
+      - flux reconcile ks cluster-sync --with-source
+      - flux reconcile ks apps-sync --with-source
+  cluster-up:
+    cmds:
+      - scripts/kind/up.sh
+  cluster-down:
+    cmds:
+      - scripts/kind/down.sh
+  flux-up:
+    cmds:
+      - scripts/flux/up.sh
+  flux-down:
+    cmds:
+      - scripts/flux/down.sh
+  flux-push:
+    cmds:
+      - scripts/flux/push.sh
+  help:
+    desc: Display this help menu
+    cmds:
+      - tsk -l

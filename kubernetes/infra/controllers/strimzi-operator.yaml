@@ -1,0 +1,65 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: strimzi
+  labels:
+    toolkit.fluxcd.io/tenant: sre-team
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: strimzi-operator
+  namespace: strimzi
+spec:
+  interval: 24h
+  url: https://github.com/strimzi/strimzi-kafka-operator
+  ref:
+    commit: 15585fc45f8db221d7036288f04732b4abe25073
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: strimzi-operator-crds
+  namespace: strimzi
+spec:
+  interval: 1h
+  retryInterval: 1m
+  timeout: 5m
+  path: ./helm-charts/helm3/strimzi-kafka-operator/crds
+  prune: true
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: strimzi-operator
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: strimzi-operator
+  namespace: strimzi
+spec:
+  interval: 120m
+  type: oci
+  url: oci://quay.io/strimzi-helm/strimzi-kafka-operator
+---
+aapiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: strimzi-operator
+  namespace: apps
+spec:
+  dependsOn:
+    - name: strimzi-operator-crds
+  serviceAccountName: dev-team
+  interval: 10m
+  chart:
+    spec:
+      chart: strimzi-operator
+      sourceRef:
+        kind: HelmRepository
+        name: strimzi-operator
+  values:
+    watchAnyNamespace: true
+  install:
+    crds: Skip
