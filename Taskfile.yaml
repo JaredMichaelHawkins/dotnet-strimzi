@@ -31,6 +31,9 @@ tasks:
   flux-push:
     cmds:
       - scripts/flux/push.sh
+  apps-push:
+      cmds:
+          - scripts/image.sh
   help:
     desc: Display this help menu
     cmds:

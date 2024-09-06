@@ -1,0 +1,34 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    toolkit.fluxcd.io/tenant: sre-team
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: jaeger-tracing
+  namespace: observability
+spec:
+  interval: 1m0s
+  url: https://jaegertracing.github.io/helm-charts
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: jaeger
+  namespace: observability
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: jaeger
+      sourceRef:
+        kind: HelmRepository
+        name: jaeger-tracing
+  values:
+    watchAnyNamespace: true
+  install:
+    crds: Skip    

@@ -1,0 +1,206 @@
+
+# Base collector configuration.
+# Supports templating. To escape existing instances of {{ }}, use {{` <original content> `}}.
+# For example, {{ REDACTED_EMAIL }} becomes {{` {{ REDACTED_EMAIL }} `}}.
+config:
+  exporters:
+    jaeger:
+      endpoint: "jaeger.observability.svc.cluster.local:14250"
+  processors:
+    batch: {}
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4317
+  service:
+    pipelines:
+      traces:
+        exporters:
+          - jaeger
+        processors:
+          - batch
+        receivers:
+          - otlp
+
+
+service:
+  # Enable the creation of a Service.
+  # By default, it's enabled on mode != daemonset.
+  # However, to enable it on mode = daemonset, its creation must be explicitly enabled
+  # enabled: true
+
+  type: ClusterIP
+  # type: LoadBalancer
+  # loadBalancerIP: 1.2.3.4
+  # loadBalancerSourceRanges: []
+
+  # By default, Service of type 'LoadBalancer' will be created setting 'externalTrafficPolicy: Cluster'
+  # unless other value is explicitly set.
+  # Possible values are Cluster or Local (https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip)
+  # externalTrafficPolicy: Cluster
+
+  annotations: {}
+
+  # By default, Service will be created setting 'internalTrafficPolicy: Local' on mode = daemonset
+  # unless other value is explicitly set.
+  # Setting 'internalTrafficPolicy: Cluster' on a daemonset is not recommended
+  # internalTrafficPolicy: Cluster
+
+ingress:
+  enabled: false
+  # annotations: {}
+  # ingressClassName: nginx
+  # hosts:
+  #   - host: collector.example.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  #         port: 4318
+  # tls:
+  #   - secretName: collector-tls
+  #     hosts:
+  #       - collector.example.com
+
+  # Additional ingresses - only created if ingress.enabled is true
+  # Useful for when differently annotated ingress services are required
+  # Each additional ingress needs key "name" set to something unique
+  additionalIngresses: []
+  # - name: cloudwatch
+  #   ingressClassName: nginx
+  #   annotations: {}
+  #   hosts:
+  #     - host: collector.example.com
+  #       paths:
+  #         - path: /
+  #           pathType: Prefix
+  #           port: 4318
+  #   tls:
+  #     - secretName: collector-tls
+  #       hosts:
+  #         - collector.example.com
+
+podMonitor:
+  # The pod monitor by default scrapes the metrics port.
+  # The metrics port needs to be enabled as well.
+  enabled: false
+  metricsEndpoints:
+    - port: metrics
+      # interval: 15s
+
+  # additional labels for the PodMonitor
+  extraLabels: {}
+  #   release: kube-prometheus-stack
+
+serviceMonitor:
+  # The service monitor by default scrapes the metrics port.
+  # The metrics port needs to be enabled as well.
+  enabled: false
+  metricsEndpoints:
+    - port: metrics
+      # interval: 15s
+
+  # additional labels for the ServiceMonitor
+  extraLabels: {}
+  #  release: kube-prometheus-stack
+  # Used to set relabeling and metricRelabeling configs on the ServiceMonitor
+  # https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config
+  relabelings: []
+  metricRelabelings: []
+
+# PodDisruptionBudget is used only if deployment enabled
+podDisruptionBudget:
+  enabled: false
+#   minAvailable: 2
+#   maxUnavailable: 1
+
+# autoscaling is used only if mode is "deployment" or "statefulset"
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  behavior: {}
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+rollout:
+  rollingUpdate: {}
+  # When 'mode: daemonset', maxSurge cannot be used when hostPort is set for any of the ports
+  # maxSurge: 25%
+  # maxUnavailable: 0
+  strategy: RollingUpdate
+
+prometheusRule:
+  enabled: false
+  groups: []
+  # Create default rules for monitoring the collector
+  defaultRules:
+    enabled: false
+
+  # additional labels for the PrometheusRule
+  extraLabels: {}
+
+statefulset:
+  # volumeClaimTemplates for a statefulset
+  volumeClaimTemplates: []
+  podManagementPolicy: "Parallel"
+  # Controls if and how PVCs created by the StatefulSet are deleted. Available in Kubernetes 1.23+.
+  persistentVolumeClaimRetentionPolicy:
+    enabled: false
+    whenDeleted: Retain
+    whenScaled: Retain
+
+networkPolicy:
+  enabled: false
+
+  # Annotations to add to the NetworkPolicy
+  annotations: {}
+
+  # Configure the 'from' clause of the NetworkPolicy.
+  # By default this will restrict traffic to ports enabled for the Collector. If
+  # you wish to further restrict traffic to other hosts or specific namespaces,
+  # see the standard NetworkPolicy 'spec.ingress.from' definition for more info:
+  # https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/
+  allowIngressFrom: []
+  # # Allow traffic from any pod in any namespace, but not external hosts
+  # - namespaceSelector: {}
+  # # Allow external access from a specific cidr block
+  # - ipBlock:
+  #     cidr: 192.168.1.64/32
+  # # Allow access from pods in specific namespaces
+  # - namespaceSelector:
+  #     matchExpressions:
+  #       - key: kubernetes.io/metadata.name
+  #         operator: In
+  #         values:
+  #           - "cats"
+  #           - "dogs"
+
+  # Add additional ingress rules to specific ports
+  # Useful to allow external hosts/services to access specific ports
+  # An example is allowing an external prometheus server to scrape metrics
+  #
+  # See the standard NetworkPolicy 'spec.ingress' definition for more info:
+  # https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/
+  extraIngressRules: []
+  # - ports:
+  #   - port: metrics
+  #     protocol: TCP
+  #   from:
+  #     - ipBlock:
+  #         cidr: 192.168.1.64/32
+
+  # Restrict egress traffic from the OpenTelemetry collector pod
+  # See the standard NetworkPolicy 'spec.egress' definition for more info:
+  # https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/
+  egressRules: []
+  #  - to:
+  #      - namespaceSelector: {}
+  #      - ipBlock:
+  #          cidr: 192.168.10.10/24
+  #    ports:
+  #      - port: 1234
+  #        protocol: TCP
+
+# Allow containers to share processes across pod namespace
+shareProcessNamespace: false
